@@ -6,3 +6,6 @@ assuming your docker-machine name is `default` and you want to upgrade to `Docke
 ```bash
 sh build.sh
 ```
+
+
+or grab the pre-build 20.10.14 iso here: https://github.com/troyxmccall/boot2docker/releases/download/v20.10.14/boot2docker.iso
