@@ -8,4 +8,4 @@ sh build.sh
 ```
 
 
-or grab the pre-build 20.10.14 iso here: https://github.com/troyxmccall/boot2docker/releases/download/v20.10.14/boot2docker.iso
+or grab the pre-built 20.10.14 iso here: https://github.com/troyxmccall/boot2docker/releases/download/v20.10.14/boot2docker.iso
