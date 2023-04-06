@@ -190,37 +190,21 @@ ENV LINUX_GPG_KEYS \
 ENV LINUX_VERSION 6.1.22
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
-	wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
-	\
-# decompress (signature is for the decompressed file)
-	xz --decompress /linux.tar.xz; \
-	[ -f /linux.tar ] && [ ! -f /linux.tar.xz ]; \
-	\
+  wget -O /linux.tar.sign "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
+  \
 # verify
-	export GNUPGHOME="$(mktemp -d)"; \
-	for key in $LINUX_GPG_KEYS; do \
-		for mirror in \
-			ldap://keyserver.pgp.com \
-			hkps://keyring.debian.org \
-			hkps://keyserver.ubuntu.com \
-			hkp://pgp.surf.nl \
-			hkp://pgp.rediris.es \
-		; do \
-			if gpg --batch --verbose --keyserver "$mirror" --keyserver-options timeout=5 --recv-keys "$key"; then \
-				break; \
-			fi; \
-		done; \
-		gpg --batch --fingerprint "$key"; \
-	done; \
-	gpg --batch --verify /linux.tar.asc /linux.tar; \
-	gpgconf --kill all; \
-	rm -rf "$GNUPGHOME"; \
-	\
+  # https://www.kernel.org/category/signatures.html
+  export GNUPGHOME="$(mktemp -d)"; \
+  gpg --locate-keys torvalds@kernel.org gregkh@kernel.org; \
+  xz -cd /linux.tar.xz | gpg --verify /linux.tar.sign - ; \
+  rm -rf "$GNUPGHOME"; \
+  \
 # extract
-	tar --extract --file /linux.tar --directory /usr/src; \
-	rm /linux.tar /linux.tar.asc; \
-	ln -sT "linux-$LINUX_VERSION" /usr/src/linux; \
-	[ -d /usr/src/linux ]
+  xz --decompress /linux.tar.xz; \
+  tar --extract --file /linux.tar --directory /usr/src; \
+  rm /linux.tar /linux.tar.sign; \
+  ln -sT "linux-$LINUX_VERSION" /usr/src/linux; \
+  [ -d /usr/src/linux ]
 
 RUN { \
 		echo '#!/usr/bin/env bash'; \
