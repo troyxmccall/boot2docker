@@ -32,16 +32,17 @@ mkdir -p /tmp/stats
 	echo '```'
 ) | tee /tmp/stats/sums.md
 {
-	echo "- Docker [v$DOCKER_VERSION](https://github.com/docker/docker-ce/releases/tag/v$DOCKER_VERSION)"
+	echo "- Docker [v$DOCKER_VERSION](https://github.com/moby/moby/releases/tag/v$DOCKER_VERSION)"
 
-	echo "- Linux [v$LINUX_VERSION](https://cdn.kernel.org/pub/linux/kernel/v4.x/ChangeLog-$LINUX_VERSION)"
+	echo "- Linux [v$LINUX_VERSION](https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/ChangeLog-$LINUX_VERSION)"
 
 	echo "- Tiny Core Linux [v$TCL_VERSION](http://forum.tinycorelinux.net/index.php?board=31.0)"
 
 	echo "- Parallels Tools v$PARALLELS_VERSION" # https://github.com/boot2docker/boot2docker/pull/1332#issuecomment-420273330
 
-	ovtVersion="$(tcl-chroot vmtoolsd --version | grep -oE 'version [^ ]+' | cut -d' ' -f2)"
-	echo "- VMware Tools (\`open-vm-tools\`) [v$ovtVersion](http://distro.ibiblio.org/tinycorelinux/$TCL_MAJOR/x86_64/tcz/open-vm-tools.tcz.info)"
+	ovtUrl="http://distro.ibiblio.org/tinycorelinux/$TCL_MAJOR/x86_64/tcz/open-vm-tools.tcz.info"
+	ovtVersion="$(wget -O- $ovtUrl | grep ^Version: | sed -r -e 's/Version:\t//g' -e 's/ (.*)//g')"
+	echo "- VMware Tools (\`open-vm-tools\`) [v$ovtVersion]($ovtUrl)"
 
 	echo "- VirtualBox Guest Additions [v$VBOX_VERSION](https://download.virtualbox.org/virtualbox/$VBOX_VERSION/)"
 

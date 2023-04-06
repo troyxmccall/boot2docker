@@ -1,27 +1,67 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# TODO http://distro.ibiblio.org/tinycorelinux/latest-x86_64
-major='11.x'
-version='11.0' # TODO auto-detect latest
-# 9.x doesn't seem to use ".../archive/X.Y.Z/..." in the same way as 8.x :(
+# http://tinycorelinux.net/
+major='13.x'
+version='13.1'
 
 mirrors=(
-	http://distro.ibiblio.org/tinycorelinux
-	http://repo.tinycorelinux.net
+	https://distro.ibiblio.org/tinycorelinux
 )
 
 # https://www.kernel.org/
-kernelBase='4.19'
-# https://github.com/boot2docker/boot2docker/issues/1398
+kernelBase='6.1'
+# https://download.docker.com/linux/static/stable/x86_64/
+dockerBase='23.0'
+# https://github.com/plougher/squashfs-tools/releases
+squashfsBase='4.5'
 # https://download.virtualbox.org/virtualbox/
-vboxBase='5'
+vboxBase='7.0'
+# https://www.parallels.com/products/desktop/download/
+parallelsBase='18'
+# https://github.com/bcicen/ctop/releases
+ctopBase='0.7'
 
 # avoid issues with slow Git HTTP interactions (*cough* sourceforge *cough*)
 export GIT_HTTP_LOW_SPEED_LIMIT='100'
 export GIT_HTTP_LOW_SPEED_TIME='2'
 # ... or servers being down
 wget() { command wget --timeout=2 "$@" -o /dev/null; }
+
+tclLatest="$(wget -qO- 'https://distro.ibiblio.org/tinycorelinux/latest-x86_64')"
+if [ $tclLatest != $version ]; then
+	echo "Tiny Core Linux has an update! ($tclLatest)"
+	exit 1
+fi
+
+kernelLatest="$(
+	wget -qO- 'https://www.kernel.org/releases.json' \
+		| jq -r '[.releases[] | select(.moniker == "longterm")] | sort_by(.version | split(".") | map(tonumber)) | reverse | .[0].version'
+)"
+if ! [[ $kernelLatest =~ ^$kernelBase[0-9.]+ ]]; then
+	echo "Linux Kernel has an update! ($kernelLatest)"
+	exit 1
+fi
+
+dockerLatest="$(
+	wget -qO- 'https://api.github.com/repos/moby/moby/releases' \
+		| jq -r '[.[] | select(.prerelease | not)] | sort_by(.tag_name | sub("^v"; "") | split(".") | map(tonumber)) | reverse | .[0].tag_name'
+)"
+if ! [[ $dockerLatest =~ ^v$dockerBase[0-9.]+ ]]; then
+	echo "Docker has an update! ($dockerLatest)"
+	exit 1
+fi
+
+vboxLatest="$(wget -qO- 'https://download.virtualbox.org/virtualbox/LATEST-STABLE.TXT')"
+if ! [[ $vboxLatest =~ ^$vboxBase[0-9.]+ ]]; then
+	echo "VirtualBox has an update! ($vboxLatest)"
+	exit 1
+fi
+
+if ! wget -qO- --spider "https://www.parallels.com/directdownload/pd$parallelsBase/image/"; then
+	echo 'Parallels Desktop has an update!'
+	exit 1
+fi
 
 cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
 
@@ -48,7 +88,6 @@ arch='x86_64'
 rootfs='rootfs64.gz'
 
 rootfsMd5="$(
-# 9.x doesn't seem to use ".../archive/X.Y.Z/..." in the same way as 8.x :(
 	fetch \
 		"$arch/archive/$version/distribution_files/$rootfs.md5.txt" \
 		"$arch/release/distribution_files/$rootfs.md5.txt"
@@ -66,7 +105,25 @@ seds+=(
 	-e 's!^(ENV LINUX_VERSION).*!\1 '"$kernelVersion"'!'
 )
 
-#vboxVersion="$(wget -qO- 'https://download.virtualbox.org/virtualbox/LATEST-STABLE.TXT')"
+dockerVersion="$(
+	wget -qO- 'https://api.github.com/repos/moby/moby/releases' \
+		| jq -r --arg base "v$dockerBase" '[.[] | .tag_name | select(startswith($base + "."))][0]' \
+		| sed -e 's!^v!!'
+)"
+seds+=(
+	-e 's!^(ENV DOCKER_VERSION).*!\1 '"$dockerVersion"'!'
+)
+
+squashfsVersion="$(
+	wget -qO- 'https://api.github.com/repos/plougher/squashfs-tools/releases' \
+		| jq -r --arg base "$squashfsBase" '[.[] | .tag_name | select(startswith($base + "."))][0]' \
+		| sed -e 's!^v!!'
+)"
+seds+=(
+	-e 's!^(ENV SQUASHFS_VERSION).*!\1 '"$squashfsVersion"'!'
+	-e 's!^(# https://github.com/plougher/squashfs-tools/blob/).*(/squashfs-tools/Makefile#L1)$!\1'"$squashfsVersion"'\2!'
+)
+
 vboxVersion="$(
 	wget -qO- 'https://download.virtualbox.org/virtualbox/' \
 		| grep -oE 'href="[0-9.]+/?"' \
@@ -85,19 +142,35 @@ seds+=(
 	-e 's!^(ENV VBOX_SHA256).*!\1 '"$vboxSha256"'!'
 )
 
-# PARALLELS_VERSION: https://github.com/boot2docker/boot2docker/pull/1332#issuecomment-420273330
+parallelsVersion="$(
+	$(which wget) -SO- --spider "https://www.parallels.com/directdownload/pd$parallelsBase/image/" 2>&1 >/dev/null \
+		| grep -oE 'https://download.parallels.com/desktop/.* \[following]' \
+		| sed -re 's|.*/([0-9.-]+)/.*|\1|'
+)"
+seds+=(
+	-e 's!^(ENV PARALLELS_VERSION).*!\1 '"$parallelsVersion"'!'
+)
 
 xenVersion="$(
 	git ls-remote --tags 'https://github.com/xenserver/xe-guest-utilities.git' \
 		| cut -d/ -f3 \
 		| cut -d^ -f1 \
-		| grep -E '^v[0-9]+' \
+		| grep -E '^v[[:digit:]]+' \
 		| cut -dv -f2- \
 		| sort -rV \
 		| head -1
 )"
 seds+=(
 	-e 's!^(ENV XEN_VERSION).*!\1 '"$xenVersion"'!'
+)
+
+ctopVersion="$(
+	wget -qO- 'https://api.github.com/repos/bcicen/ctop/releases' \
+		| jq -r --arg base "v$ctopBase" '[.[] | .tag_name | select(startswith($base + "."))][0]' \
+		| sed -e 's!^v!!'
+)"
+seds+=(
+	-e 's!^(ENV CTOP_VERSION).*!\1 '"$ctopVersion"'!'
 )
 
 set -x

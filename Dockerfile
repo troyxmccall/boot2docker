@@ -1,4 +1,4 @@
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 SHELL ["/bin/bash", "-Eeuo", "pipefail", "-xc"]
 
@@ -18,9 +18,14 @@ RUN apt-get update; \
 		libc6-dev \
 		libelf-dev \
 		libssl-dev \
+		liblzma-dev \
+		liblzo2-dev \
+		liblz4-dev \
+		libzstd-dev \
 		make \
 		p7zip-full \
 		patch \
+		rsync \
 		squashfs-tools \
 		wget \
 		xorriso \
@@ -36,13 +41,12 @@ RUN echo 'progress = dot:giga' >> ~/.wgetrc; \
 WORKDIR /rootfs
 
 # updated via "update.sh"
-ENV TCL_MIRRORS http://distro.ibiblio.org/tinycorelinux http://repo.tinycorelinux.net
-ENV TCL_MAJOR 11.x
-ENV TCL_VERSION 11.0
+ENV TCL_MIRRORS https://distro.ibiblio.org/tinycorelinux
+ENV TCL_MAJOR 13.x
+ENV TCL_VERSION 13.1
 
-# http://distro.ibiblio.org/tinycorelinux/8.x/x86_64/archive/8.2.1/distribution_files/rootfs64.gz.md5.txt
 # updated via "update.sh"
-ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="ea8699a39115289ed00d807eac4c3118"
+ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="337441ac3eb75561a9d702d783e678ba"
 
 COPY files/tce-load.patch files/udhcpc.patch /tcl-patches/
 
@@ -121,17 +125,18 @@ RUN mkdir -p proc; \
 
 # as of squashfs-tools 4.4, TCL's unsquashfs is broken... (fails to unsquashfs *many* core tcz files)
 # https://github.com/plougher/squashfs-tools/releases
-ENV SQUASHFS_VERSION 4.4
+# updated via "update.sh"
+ENV SQUASHFS_VERSION 4.5.1
 RUN wget -O squashfs.tgz "https://github.com/plougher/squashfs-tools/archive/$SQUASHFS_VERSION.tar.gz"; \
 	tar --directory=/usr/src --extract --file=squashfs.tgz; \
 	make -C "/usr/src/squashfs-tools-$SQUASHFS_VERSION/squashfs-tools" \
 		-j "$(nproc)" \
-# https://github.com/plougher/squashfs-tools/blob/4.4/squashfs-tools/Makefile#L1
+# https://github.com/plougher/squashfs-tools/blob/4.5.1/squashfs-tools/Makefile#L1
 		GZIP_SUPPORT=1 \
-#		XZ_SUPPORT=1 \
-#		LZO_SUPPORT=1 \
-#		LZ4_SUPPORT=1 \
-#		ZSTD_SUPPORT=1 \
+		XZ_SUPPORT=1 \
+		LZO_SUPPORT=1 \
+		LZ4_SUPPORT=1 \
+		ZSTD_SUPPORT=1 \
 		EXTRA_CFLAGS='-static' \
 		EXTRA_LDFLAGS='-static' \
 		INSTALL_DIR="$PWD/usr/local/bin" \
@@ -175,10 +180,14 @@ ENV LINUX_GPG_KEYS \
 # Linus Torvalds
 		ABAF11C65A2970B130ABE3C479BE3E4300411886 \
 # Greg Kroah-Hartman
-		647F28654894E3BD457199BE38DBBDC86092693E
+		647F28654894E3BD457199BE38DBBDC86092693E \
+# Sasha Levin
+		E27E5D8A3403A2EF66873BBCDEA66FF797772CDC \
+# Ben Hutchings
+		AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
 
 # updated via "update.sh"
-ENV LINUX_VERSION 4.19.103
+ENV LINUX_VERSION 6.1.22
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
 	wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -191,12 +200,11 @@ RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERS
 	export GNUPGHOME="$(mktemp -d)"; \
 	for key in $LINUX_GPG_KEYS; do \
 		for mirror in \
-			ha.pool.sks-keyservers.net \
-			pgp.mit.edu \
-			hkp://p80.pool.sks-keyservers.net:80 \
-			ipv4.pool.sks-keyservers.net \
-			keyserver.ubuntu.com \
-			hkp://keyserver.ubuntu.com:80 \
+			ldap://keyserver.pgp.com \
+			hkps://keyring.debian.org \
+			hkps://keyserver.ubuntu.com \
+			hkp://pgp.surf.nl \
+			hkp://pgp.rediris.es \
 		; do \
 			if gpg --batch --verbose --keyserver "$mirror" --keyserver-options timeout=5 --recv-keys "$key"; then \
 				break; \
@@ -250,10 +258,11 @@ RUN setConfs="$(grep -vEh '^[#-]' /kernel-config.d/* | sort -u)"; \
 	unsetConfs=( $unsetConfs ); \
 	unset IFS; \
 	\
+# https://www.mail-archive.com/linux-kernel@vger.kernel.org/msg2140886.html
 	make -C /usr/src/linux \
 		defconfig \
-		kvmconfig \
-		xenconfig \
+		kvm_guest.config \
+		xen.config \
 		> /dev/null; \
 	\
 	( \
@@ -333,9 +342,9 @@ RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
 # http://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION 5.2.36
+ENV VBOX_VERSION 7.0.6
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256 6124287b7a1790436a9b0b2601154b50c6cd6e680aeff45c61d03ee1158f3eb9
+ENV VBOX_SHA256 21e0f407d2a4f5c286084a70718aa20235ea75969eca0cab6cfab43a3499a010
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
@@ -361,16 +370,19 @@ RUN make -C /usr/src/vbox/amd64/src/vboxguest -j "$(nproc)" \
 # TCL includes VMware's open-vm-tools 10.2.0.1608+ (no reason to compile that ourselves)
 RUN tcl-tce-load open-vm-tools; \
 	tcl-chroot vmhgfs-fuse --version; \
-	tcl-chroot vmtoolsd --version
+	tcl-chroot which vmtoolsd; \
+	rm etc/profile.d/open-vm-tools.sh
 
-ENV PARALLELS_VERSION 13.3.0-43321
+# https://www.parallels.com/products/desktop/download/
+# updated via "update.sh"
+ENV PARALLELS_VERSION 18.1.1-53328
 
 RUN wget -O /parallels.tgz "https://download.parallels.com/desktop/v${PARALLELS_VERSION%%.*}/$PARALLELS_VERSION/ParallelsTools-$PARALLELS_VERSION-boot2docker.tar.gz"; \
 	mkdir /usr/src/parallels; \
 	tar --extract --file /parallels.tgz --directory /usr/src/parallels --strip-components 1; \
 	rm /parallels.tgz
 RUN cp -vr /usr/src/parallels/tools/* ./; \
-	make -C /usr/src/parallels/kmods -f Makefile.kmods -j "$(nproc)" installme \
+	make -C /usr/src/parallels/kmods -f Makefile.kmods -j "$(nproc)" compile \
 		SRC='/usr/src/linux' \
 		KERNEL_DIR='/usr/src/linux' \
 		KVER="$(< /usr/src/linux/include/config/kernel.release)" \
@@ -381,19 +393,16 @@ RUN cp -vr /usr/src/parallels/tools/* ./; \
 
 # https://github.com/xenserver/xe-guest-utilities/tags
 # updated via "update.sh"
-ENV XEN_VERSION 7.18.0
+ENV XEN_VERSION 7.33.0
 
 RUN wget -O /xen.tgz "https://github.com/xenserver/xe-guest-utilities/archive/v$XEN_VERSION.tar.gz"; \
 	mkdir /usr/src/xen; \
 	tar --extract --file /xen.tgz --directory /usr/src/xen --strip-components 1; \
 	rm /xen.tgz
-# download "golang.org/x/sys/unix" dependency (new in 7.14.0)
 RUN cd /usr/src/xen; \
-	mkdir -p GOPATH/src/golang.org/x/sys; \
-	wget -O sys.tgz 'https://github.com/golang/sys/archive/fc99dfbffb4e5ed5758a37e31dd861afe285406b.tar.gz'; \
-	tar -xf sys.tgz -C GOPATH/src/golang.org/x/sys --strip-components 1; \
-	rm sys.tgz
-RUN GOPATH='/usr/src/xen/GOPATH' make -C /usr/src/xen -j "$(nproc)" PRODUCT_VERSION="$XEN_VERSION" RELEASE='boot2docker'; \
+	go mod vendor; \
+	mkdir vendor/xe-guest-utilities
+RUN make -C /usr/src/xen -j "$(nproc)" VENDORDIR="/usr/src/xen/vendor/xe-guest-utilities" PRODUCT_VERSION="$XEN_VERSION" RELEASE='boot2docker'; \
 	tar --extract --file "/usr/src/xen/build/dist/xe-guest-utilities_$XEN_VERSION-boot2docker_x86_64.tgz"; \
 	tcl-chroot xenstore || [ "$?" = 1 ]
 
@@ -412,7 +421,9 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 	chmod +x usr/local/sbin/cgroupfs-mount; \
 	tcl-chroot cgroupfs-mount
 
-ENV DOCKER_VERSION 20.10.20
+# https://download.docker.com/linux/static/stable/x86_64/
+# updated via "update.sh"
+ENV DOCKER_VERSION 23.0.3
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
@@ -426,7 +437,7 @@ RUN DOCKER_CHANNEL='stable'; \
 	rm /docker.tgz; \
 	\
 # download bash-completion too
-	wget -O usr/local/share/bash-completion/completions/docker "https://raw.githubusercontent.com/docker/cli/master/contrib/completion/bash/docker"; \
+	wget -O usr/local/share/bash-completion/completions/docker "https://github.com/docker/cli/raw/v${DOCKER_VERSION}/contrib/completion/bash/docker"; \
 	\
 	for binary in \
 		containerd \
@@ -439,6 +450,22 @@ RUN DOCKER_CHANNEL='stable'; \
 		chroot . "$binary" --version; \
 	done
 
+# CTOP - https://github.com/bcicen/ctop
+# updated via "update.sh"
+ENV CTOP_VERSION 0.7.7
+RUN wget -O usr/local/bin/ctop "https://github.com/bcicen/ctop/releases/download/v$CTOP_VERSION/ctop-$CTOP_VERSION-linux-amd64" ; \
+	chmod +x usr/local/bin/ctop
+
+# set up docker
+RUN mkdir -p etc/docker; \
+	{ \
+		echo '{'; \
+		echo '    "features": {'; \
+		echo '        "buildkit": true'; \
+		echo '    }'; \
+		echo '}'; \
+	} > etc/docker/daemon.json
+
 # set up a few branding bits
 RUN { \
 		echo 'NAME=Boot2Docker'; \
@@ -448,9 +475,9 @@ RUN { \
 		echo "VERSION_ID=$DOCKER_VERSION"; \
 		echo "PRETTY_NAME=\"Boot2Docker $DOCKER_VERSION (TCL $TCL_VERSION)\""; \
 		echo 'ANSI_COLOR="1;34"'; \
-		echo 'HOME_URL="https://github.com/boot2docker/boot2docker"'; \
-		echo 'SUPPORT_URL="https://blog.docker.com/2016/11/introducing-docker-community-directory-docker-community-slack/"'; \
-		echo 'BUG_REPORT_URL="https://github.com/boot2docker/boot2docker/issues"'; \
+		echo 'HOME_URL="https://github.com/troyxmccall/boot2docker"'; \
+		echo 'SUPPORT_URL="https://github.com/troyxmccall/boot2docker/issues"'; \
+		echo 'BUG_REPORT_URL="https://github.com/troyxmccall/boot2docker/issues"'; \
 	} > etc/os-release; \
 	sed -i 's/HOSTNAME="box"/HOSTNAME="boot2docker"/g' usr/bin/sethostname; \
 	tcl-chroot sethostname; \
@@ -458,7 +485,14 @@ RUN { \
 	for num in 0 1 2 3; do \
 		echo "server $num.boot2docker.pool.ntp.org"; \
 	done > etc/ntp.conf; \
-	rm -v etc/sysconfig/ntpserver
+	rm -v etc/sysconfig/ntpserver; \
+	sed -i "s|\$(grep '^VERSION_ID=' /etc/os-release)|VERSION_ID=$TCL_VERSION|g" etc/init.d/tc-functions
+
+# fix tce-load
+RUN mv etc/init.d/tc-functions etc/init.d/tc-functions.orig; \
+	sed "s|\$(grep '^VERSION_ID=' /etc/os-release)|VERSION_ID=$TCL_VERSION|g" \
+		etc/init.d/tc-functions.orig \
+		> etc/init.d/tc-functions
 
 COPY files/forgiving-getty files/shutdown ./usr/local/sbin/
 
