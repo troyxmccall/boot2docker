@@ -1,6 +1,6 @@
 
 
-assuming your docker-machine name is `default` and you want to upgrade to `Docker version 20.10.14, build a224086`
+assuming your docker-machine name is `default` and you want to upgrade to `Docker version 23.0.3, build 3e7cbfd`
 
 
 ```bash
