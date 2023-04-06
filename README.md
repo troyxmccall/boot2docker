@@ -17,3 +17,10 @@ I typically run something like:
 ```bash
 docker-machine create --driver=parallels --parallels-disk-size 40000 --parallels-cpu-count -1 --parallels-memory 16384 --parallels-boot2docker-url https://github.com/troyxmccall/boot2docker/releases/download/v23.0.3/boot2docker.iso default
 ```
+
+
+# updating deps
+
+```bash
+docker run -it --rm -v "$(pwd)":/workdir debian bash -c "apt-get update && apt-get install -y wget jq git && cd /workdir && bash update.sh"
+```
