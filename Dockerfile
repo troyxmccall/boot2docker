@@ -181,38 +181,21 @@ ENV LINUX_GPG_KEYS \
 ENV LINUX_VERSION 4.19.103
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
-	wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
-	\
-# decompress (signature is for the decompressed file)
-	xz --decompress /linux.tar.xz; \
-	[ -f /linux.tar ] && [ ! -f /linux.tar.xz ]; \
-	\
+  wget -O /linux.tar.sign "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
+  \
 # verify
-	export GNUPGHOME="$(mktemp -d)"; \
-	for key in $LINUX_GPG_KEYS; do \
-		for mirror in \
-			ha.pool.sks-keyservers.net \
-			pgp.mit.edu \
-			hkp://p80.pool.sks-keyservers.net:80 \
-			ipv4.pool.sks-keyservers.net \
-			keyserver.ubuntu.com \
-			hkp://keyserver.ubuntu.com:80 \
-		; do \
-			if gpg --batch --verbose --keyserver "$mirror" --keyserver-options timeout=5 --recv-keys "$key"; then \
-				break; \
-			fi; \
-		done; \
-		gpg --batch --fingerprint "$key"; \
-	done; \
-	gpg --batch --verify /linux.tar.asc /linux.tar; \
-	gpgconf --kill all; \
-	rm -rf "$GNUPGHOME"; \
-	\
+  # https://www.kernel.org/category/signatures.html
+  export GNUPGHOME="$(mktemp -d)"; \
+  gpg --locate-keys torvalds@kernel.org gregkh@kernel.org; \
+  xz -cd /linux.tar.xz | gpg --verify /linux.tar.sign - ; \
+  rm -rf "$GNUPGHOME"; \
+  \
 # extract
-	tar --extract --file /linux.tar --directory /usr/src; \
-	rm /linux.tar /linux.tar.asc; \
-	ln -sT "linux-$LINUX_VERSION" /usr/src/linux; \
-	[ -d /usr/src/linux ]
+  xz --decompress /linux.tar.xz; \
+  tar --extract --file /linux.tar --directory /usr/src; \
+  rm /linux.tar /linux.tar.sign; \
+  ln -sT "linux-$LINUX_VERSION" /usr/src/linux; \
+  [ -d /usr/src/linux ]
 
 RUN { \
 		echo '#!/usr/bin/env bash'; \
@@ -412,7 +395,7 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 	chmod +x usr/local/sbin/cgroupfs-mount; \
 	tcl-chroot cgroupfs-mount
 
-ENV DOCKER_VERSION 20.10.20
+ENV DOCKER_VERSION 23.0.3
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
