@@ -175,17 +175,6 @@ RUN tcl-tce-load bash; \
 	source etc/profile.d/boot2docker-ps1.sh; \
 	[ "$PS1" = '\[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ ' ]
 
-# https://www.kernel.org/category/signatures.html#important-fingerprints
-ENV LINUX_GPG_KEYS \
-# Linus Torvalds
-		ABAF11C65A2970B130ABE3C479BE3E4300411886 \
-# Greg Kroah-Hartman
-		647F28654894E3BD457199BE38DBBDC86092693E \
-# Sasha Levin
-		E27E5D8A3403A2EF66873BBCDEA66FF797772CDC \
-# Ben Hutchings
-		AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
-
 # updated via "update.sh"
 ENV LINUX_VERSION 6.1.22
 
