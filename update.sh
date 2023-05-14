@@ -31,7 +31,6 @@ wget() { command wget --timeout=2 "$@" -o /dev/null; }
 tclLatest="$(wget -qO- 'https://distro.ibiblio.org/tinycorelinux/latest-x86_64')"
 if [ $tclLatest != $version ]; then
 	echo "Tiny Core Linux has an update! ($tclLatest)"
-	exit 1
 fi
 
 kernelLatest="$(
@@ -40,7 +39,6 @@ kernelLatest="$(
 )"
 if ! [[ $kernelLatest =~ ^$kernelBase[0-9.]+ ]]; then
 	echo "Linux Kernel has an update! ($kernelLatest)"
-	exit 1
 fi
 
 dockerLatest="$(
@@ -49,18 +47,15 @@ dockerLatest="$(
 )"
 if ! [[ $dockerLatest =~ ^v$dockerBase[0-9.]+ ]]; then
 	echo "Docker has an update! ($dockerLatest)"
-	exit 1
 fi
 
 vboxLatest="$(wget -qO- 'https://download.virtualbox.org/virtualbox/LATEST-STABLE.TXT')"
 if ! [[ $vboxLatest =~ ^$vboxBase[0-9.]+ ]]; then
 	echo "VirtualBox has an update! ($vboxLatest)"
-	exit 1
 fi
 
 if ! wget -qO- --spider "https://www.parallels.com/directdownload/pd$parallelsBase/image/"; then
 	echo 'Parallels Desktop has an update!'
-	exit 1
 fi
 
 cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
