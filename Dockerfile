@@ -183,7 +183,7 @@ ENV LINUX_GPG_KEYS \
 		AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
 
 # updated via "update.sh"
-ENV LINUX_VERSION 6.1.74
+ENV LINUX_VERSION 6.1.87
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
 	wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -321,7 +321,9 @@ RUN tcl-tce-load \
 		acpid \
 		bash-completion \
 		ca-certificates \
+    curl \
 		e2fsprogs \
+    git \
 		iproute2 \
 		iptables \
 		ncursesw-terminfo \
@@ -330,6 +332,7 @@ RUN tcl-tce-load \
 		openssl-1.1.1 \
 		parted \
 		procps-ng \
+    rsync \
 		tar \
 		util-linux \
 		xz
@@ -347,9 +350,9 @@ RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
 # https://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION 7.0.14
+ENV VBOX_VERSION 7.0.16
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256 0efbcb9bf4722cb19292ae00eba29587432e918d3b1f70905deb70f7cf78e8ce
+ENV VBOX_SHA256 269dcd2217aedfea65daaa75317ffa32c0e3110e541f7dce74a8d16973eca0df
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
@@ -380,8 +383,7 @@ RUN tcl-tce-load open-vm-tools; \
 
 # https://www.parallels.com/products/desktop/download/
 # updated via "update.sh"
-# ENV PARALLELS_VERSION 19.2.1-54832
-ENV PARALLELS_VERSION 18.3.0-53606
+ENV PARALLELS_VERSION 19.3.0-54924
 
 RUN wget -O /parallels.tgz "https://download.parallels.com/desktop/v${PARALLELS_VERSION%%.*}/$PARALLELS_VERSION/ParallelsTools-$PARALLELS_VERSION-boot2docker.tar.gz"; \
 	mkdir /usr/src/parallels; \
@@ -454,7 +456,7 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 
 # https://download.docker.com/linux/static/stable/x86_64/
 # updated via "update.sh"
-ENV DOCKER_VERSION 25.0.1
+ENV DOCKER_VERSION 26.0.2
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
@@ -506,9 +508,9 @@ RUN { \
 		echo "VERSION_ID=$DOCKER_VERSION"; \
 		echo "PRETTY_NAME=\"Boot2Docker $DOCKER_VERSION (TCL $TCL_VERSION)\""; \
 		echo 'ANSI_COLOR="1;34"'; \
-		echo 'HOME_URL="https://github.com/silver886/boot2docker"'; \
+		echo 'HOME_URL="https://github.com/troyxmccall/boot2docker"'; \
 		echo 'SUPPORT_URL="https://blog.docker.com/2016/11/introducing-docker-community-directory-docker-community-slack/"'; \
-		echo 'BUG_REPORT_URL="https://github.com/silver886/boot2docker/issues"'; \
+		echo 'BUG_REPORT_URL="https://github.com/troyxmccall/boot2docker/issues"'; \
 	} > etc/os-release; \
 	sed -i 's/HOSTNAME="box"/HOSTNAME="boot2docker"/g' usr/bin/sethostname; \
 	tcl-chroot sethostname; \

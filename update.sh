@@ -11,7 +11,7 @@ mirrors=(
 # https://www.kernel.org/
 kernelBase='6.1'
 # https://download.docker.com/linux/static/stable/x86_64/
-dockerBase='25.0'
+dockerBase='26'
 
 # avoid issues with slow Git HTTP interactions (*cough* sourceforge *cough*)
 export GIT_HTTP_LOW_SPEED_LIMIT='100'
@@ -22,7 +22,7 @@ wget() { command wget --timeout=2 "$@" -o /dev/null; }
 tclLatest="$(wget -qO- 'https://distro.ibiblio.org/tinycorelinux/latest-x86_64')"
 if [ $tclLatest != $version ]; then
 	echo "Tiny Core Linux has an update! ($tclLatest)"
-	exit 1
+	# exit 1
 fi
 
 kernelLatest="$(
@@ -31,7 +31,7 @@ kernelLatest="$(
 )"
 if ! [[ $kernelLatest =~ ^$kernelBase[0-9.]+ ]]; then
 	echo "Linux Kernel has an update! ($kernelLatest)"
-	exit 1
+	# exit 1
 fi
 
 dockerLatest="$(
