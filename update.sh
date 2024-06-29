@@ -10,7 +10,7 @@ mirrors=(
 )
 
 # https://www.kernel.org/
-kernelBase='5.15'
+kernelBase='6.6'
 # https://download.docker.com/linux/static/stable/x86_64/
 dockerBase='27.0'
 # https://github.com/plougher/squashfs-tools/releases
