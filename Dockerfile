@@ -41,9 +41,9 @@ RUN echo 'progress = dot:giga' >> ~/.wgetrc; \
 WORKDIR /rootfs
 
 # updated via "update.sh"
-ENV TCL_MIRRORS https://distro.ibiblio.org/tinycorelinux
-ENV TCL_MAJOR 13.x
-ENV TCL_VERSION 13.1
+ENV TCL_MIRRORS=https://distro.ibiblio.org/tinycorelinux
+ENV TCL_MAJOR=13.x
+ENV TCL_VERSION=13.1
 
 # updated via "update.sh"
 ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="337441ac3eb75561a9d702d783e678ba"
@@ -126,7 +126,7 @@ RUN mkdir -p proc; \
 # as of squashfs-tools 4.4, TCL's unsquashfs is broken... (fails to unsquashfs *many* core tcz files)
 # https://github.com/plougher/squashfs-tools/releases
 # updated via "update.sh"
-ENV SQUASHFS_VERSION 4.5.1
+ENV SQUASHFS_VERSION=4.5.1
 RUN wget -O squashfs.tgz "https://github.com/plougher/squashfs-tools/archive/$SQUASHFS_VERSION.tar.gz"; \
 	tar --directory=/usr/src --extract --file=squashfs.tgz; \
 	make -C "/usr/src/squashfs-tools-$SQUASHFS_VERSION/squashfs-tools" \
@@ -176,7 +176,7 @@ RUN tcl-tce-load bash; \
 	[ "$PS1" = '\[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ ' ]
 
 # updated via "update.sh"
-ENV LINUX_VERSION 6.6.36
+ENV LINUX_VERSION=6.1.96
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
   wget -O /linux.tar.sign "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -315,9 +315,9 @@ RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
 # http://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION 7.0.18
+ENV VBOX_VERSION=7.0.18
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256 4469bab0f59c62312b0a1b67dcf9c07a8a971afad339fa2c3eb80e209e099ef9
+ENV VBOX_SHA256=4469bab0f59c62312b0a1b67dcf9c07a8a971afad339fa2c3eb80e209e099ef9
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
@@ -348,7 +348,7 @@ RUN tcl-tce-load open-vm-tools; \
 
 # https://www.parallels.com/products/desktop/download/
 # updated via "update.sh"
-ENV PARALLELS_VERSION 18.3.0-53606
+ENV PARALLELS_VERSION=18.3.0-53606
 
 RUN wget -O /parallels.tgz "https://download.parallels.com/desktop/v${PARALLELS_VERSION%%.*}/$PARALLELS_VERSION/ParallelsTools-$PARALLELS_VERSION-boot2docker.tar.gz"; \
 	mkdir /usr/src/parallels; \
@@ -366,7 +366,7 @@ RUN cp -vr /usr/src/parallels/tools/* ./; \
 
 # https://github.com/xenserver/xe-guest-utilities/tags
 # updated via "update.sh"
-ENV XEN_VERSION 8.4.0
+ENV XEN_VERSION=8.4.0
 
 RUN wget -O /xen.tgz "https://github.com/xenserver/xe-guest-utilities/archive/v$XEN_VERSION.tar.gz"; \
 	mkdir /usr/src/xen; \
@@ -388,7 +388,7 @@ RUN make -C /usr/src/linux/tools/hv hv_kvp_daemon; \
 RUN tcl-chroot depmod "$(< /usr/src/linux/include/config/kernel.release)"
 
 # https://github.com/tianon/cgroupfs-mount/releases
-ENV CGROUPFS_MOUNT_VERSION 1.4
+ENV CGROUPFS_MOUNT_VERSION=1.4
 
 RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mount/raw/${CGROUPFS_MOUNT_VERSION}/cgroupfs-mount"; \
 	chmod +x usr/local/sbin/cgroupfs-mount; \
@@ -396,7 +396,7 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 
 # https://download.docker.com/linux/static/stable/x86_64/
 # updated via "update.sh"
-ENV DOCKER_VERSION 27.0.2
+ENV DOCKER_VERSION=27.0.2
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
@@ -425,7 +425,7 @@ RUN DOCKER_CHANNEL='stable'; \
 
 # CTOP - https://github.com/bcicen/ctop
 # updated via "update.sh"
-ENV CTOP_VERSION 0.7.7
+ENV CTOP_VERSION=0.7.7
 RUN wget -O usr/local/bin/ctop "https://github.com/bcicen/ctop/releases/download/v$CTOP_VERSION/ctop-$CTOP_VERSION-linux-amd64" ; \
 	chmod +x usr/local/bin/ctop
 
