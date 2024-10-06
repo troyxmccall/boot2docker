@@ -12,7 +12,7 @@ mirrors=(
 # https://www.kernel.org/
 kernelBase='6.1'
 # https://download.docker.com/linux/static/stable/x86_64/
-dockerBase='27.2'
+dockerBase='27.3'
 # https://github.com/plougher/squashfs-tools/releases
 squashfsBase='4.5'
 # https://download.virtualbox.org/virtualbox/
