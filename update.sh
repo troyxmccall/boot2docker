@@ -11,7 +11,15 @@ mirrors=(
 # https://www.kernel.org/
 kernelBase='6.1'
 # https://download.docker.com/linux/static/stable/x86_64/
-dockerBase='26'
+dockerBase='27.3'
+# https://github.com/plougher/squashfs-tools/releases
+squashfsBase='4.5'
+# https://download.virtualbox.org/virtualbox/
+vboxBase='7.0'
+# https://www.parallels.com/products/desktop/download/
+parallelsBase='18'
+# https://github.com/bcicen/ctop/releases
+ctopBase='0.7'
 
 # avoid issues with slow Git HTTP interactions (*cough* sourceforge *cough*)
 export GIT_HTTP_LOW_SPEED_LIMIT='100'

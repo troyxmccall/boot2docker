@@ -183,7 +183,7 @@ ENV LINUX_GPG_KEYS \
 		AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
 
 # updated via "update.sh"
-ENV LINUX_VERSION 6.1.87
+ENV LINUX_VERSION 6.1.112
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
 	wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -350,9 +350,9 @@ RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
 # https://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION 7.0.16
+ENV VBOX_VERSION 7.0.20
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256 269dcd2217aedfea65daaa75317ffa32c0e3110e541f7dce74a8d16973eca0df
+ENV VBOX_SHA256 4c7523fa6d17436e3b7788f62956674270572cfefa340d03111b85f8517d5981
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
@@ -383,7 +383,7 @@ RUN tcl-tce-load open-vm-tools; \
 
 # https://www.parallels.com/products/desktop/download/
 # updated via "update.sh"
-ENV PARALLELS_VERSION 19.3.0-54924
+ENV PARALLELS_VERSION 19.0.0-54570
 
 RUN wget -O /parallels.tgz "https://download.parallels.com/desktop/v${PARALLELS_VERSION%%.*}/$PARALLELS_VERSION/ParallelsTools-$PARALLELS_VERSION-boot2docker.tar.gz"; \
 	mkdir /usr/src/parallels; \
@@ -448,7 +448,7 @@ RUN tcl-tce-load spice-vdagent; \
 RUN tcl-chroot depmod "$(< /usr/src/linux/include/config/kernel.release)"
 
 # https://github.com/tianon/cgroupfs-mount/releases
-ENV CGROUPFS_MOUNT_VERSION 1.4
+ENV CGROUPFS_MOUNT_VERSION=1.4
 
 RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mount/raw/${CGROUPFS_MOUNT_VERSION}/cgroupfs-mount"; \
 	chmod +x usr/local/sbin/cgroupfs-mount; \
@@ -456,7 +456,7 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 
 # https://download.docker.com/linux/static/stable/x86_64/
 # updated via "update.sh"
-ENV DOCKER_VERSION 26.0.2
+ENV DOCKER_VERSION 27.3.1
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
