@@ -183,7 +183,7 @@ ENV LINUX_GPG_KEYS \
 		AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
 
 # updated via "update.sh"
-ENV LINUX_VERSION 6.1.112
+ENV LINUX_VERSION 6.1.119
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
 	wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -350,9 +350,9 @@ RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
 # https://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION 7.0.20
+ENV VBOX_VERSION 7.1.4
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256 4c7523fa6d17436e3b7788f62956674270572cfefa340d03111b85f8517d5981
+ENV VBOX_SHA256 80c91d35742f68217cf47b13e5b50d53f54c22c485bacce41ad7fdc321649e61
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
