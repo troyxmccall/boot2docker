@@ -36,15 +36,24 @@ mkdir -p /tmp/stats
 
 	echo "- Linux [v$LINUX_VERSION](https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/ChangeLog-$LINUX_VERSION)"
 
-	echo "- Tiny Core Linux [v$TCL_VERSION](http://forum.tinycorelinux.net/index.php?board=31.0)"
-
-	echo "- Parallels Tools v$PARALLELS_VERSION" # https://github.com/boot2docker/boot2docker/pull/1332#issuecomment-420273330
-
-	ovtUrl="http://distro.ibiblio.org/tinycorelinux/$TCL_MAJOR/x86_64/tcz/open-vm-tools.tcz.info"
-	ovtVersion="$(wget -O- $ovtUrl | grep ^Version: | sed -r -e 's/Version:\t//g' -e 's/ (.*)//g')"
-	echo "- VMware Tools (\`open-vm-tools\`) [v$ovtVersion]($ovtUrl)"
+	echo "- Tiny Core Linux [v$TCL_VERSION](https://forum.tinycorelinux.net/index.php?board=31.0)"
 
 	echo "- VirtualBox Guest Additions [v$VBOX_VERSION](https://download.virtualbox.org/virtualbox/$VBOX_VERSION/)"
 
+	ovtUrl="https://distro.ibiblio.org/tinycorelinux/$TCL_MAJOR/x86_64/tcz/open-vm-tools.tcz.info"
+	ovtVersion="$(wget -O- $ovtUrl | grep ^Version: | sed -r -e 's/Version:|\s//g' -e 's/\(.*\)//g')"
+	echo "- VMware Tools (\`open-vm-tools\`) [v$ovtVersion]($ovtUrl)"
+
+	ptUrl="https://download.parallels.com/desktop/v$(echo '18.2.0-53488' | sed -r -e 's|\..*||g')/docs/en_US/Parallels%20Desktop%20User%27s%20Guide/39658.htm"
+	echo "- Parallels Tools [v$PARALLELS_VERSION]($ptUrl)" # https://github.com/boot2docker/boot2docker/pull/1332#issuecomment-420273330
+
 	echo "- XenServer Tools (\`xe-guest-utilities\`) [v$XEN_VERSION](https://github.com/xenserver/xe-guest-utilities/tree/v$XEN_VERSION)"
+
+	qemuUrl="https://distro.ibiblio.org/tinycorelinux/$TCL_MAJOR/x86_64/tcz/qemu.tcz.info"
+	qemuVersion="$(wget -O- $qemuUrl | grep ^Version: | sed -r -e 's/Version:|\s//g')"
+	echo "- QEMU Guest Agent (\`qemu\`) [v$qemuVersion]($qemuUrl)"
+
+	spiceUrl="https://distro.ibiblio.org/tinycorelinux/$TCL_MAJOR/x86_64/tcz/spice-vdagent.tcz.info"
+	spiceVersion="$(wget -O- $spiceUrl | grep ^Version: | sed -r -e 's/Version:|\s//g')"
+	echo "- Spice VM Guest Agent (\`spice-vdagent\`) [v$spiceVersion]($spiceUrl)"
 } | tee /tmp/stats/state.md

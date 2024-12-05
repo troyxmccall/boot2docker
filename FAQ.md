@@ -46,7 +46,6 @@ download using `tce-load -w package.tcz`), and then start a container:
 ```bash
 #!/bin/sh
 
-
 if [ ! -e /var/lib/boot2docker/pipework ]; then
         curl -o /var/lib/boot2docker/pipework https://raw.github.com/jpetazzo/pipework/master/pipework
         chmod 777 /var/lib/boot2docker/pipework
@@ -60,7 +59,7 @@ su - docker -c "tce-load -i /var/lib/boot2docker/*.tcz"
 docker run -d -v /var/run/docker.sock:/var/run/docker.sock $(which docker):$(which docker)  -name dom0 svens-dom0
 ```
 
-Or, if you need to tell the Docker daemon to use a specific DNS server, add the 
+Or, if you need to tell the Docker daemon to use a specific DNS server, add the
 following to `/var/lib/boot2docker/profile`:
 
 ```bash

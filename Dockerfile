@@ -42,11 +42,11 @@ WORKDIR /rootfs
 
 # updated via "update.sh"
 ENV TCL_MIRRORS https://distro.ibiblio.org/tinycorelinux
-ENV TCL_MAJOR 13.x
-ENV TCL_VERSION 13.1
+ENV TCL_MAJOR 14.x
+ENV TCL_VERSION 14.0
 
 # updated via "update.sh"
-ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="337441ac3eb75561a9d702d783e678ba"
+ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="9b83cc61e606c631fa58dd401ee3f631"
 
 COPY files/tce-load.patch files/udhcpc.patch /tcl-patches/
 
@@ -81,10 +81,6 @@ RUN for mirror in $TCL_MIRRORS; do \
 		echo '# https://1.1.1.1/'; \
 		echo 'nameserver 1.1.1.1'; \
 		echo 'nameserver 1.0.0.1'; \
-		echo; \
-		echo '# https://developers.google.com/speed/public-dns/'; \
-		echo 'nameserver 8.8.8.8'; \
-		echo 'nameserver 8.8.4.4'; \
 	} > etc/resolv.conf; \
 	cp etc/resolv.conf etc/resolv.conf.b2d; \
 	{ \
@@ -126,12 +122,12 @@ RUN mkdir -p proc; \
 # as of squashfs-tools 4.4, TCL's unsquashfs is broken... (fails to unsquashfs *many* core tcz files)
 # https://github.com/plougher/squashfs-tools/releases
 # updated via "update.sh"
-ENV SQUASHFS_VERSION 4.5.1
+ENV SQUASHFS_VERSION 4.6.1
 RUN wget -O squashfs.tgz "https://github.com/plougher/squashfs-tools/archive/$SQUASHFS_VERSION.tar.gz"; \
 	tar --directory=/usr/src --extract --file=squashfs.tgz; \
 	make -C "/usr/src/squashfs-tools-$SQUASHFS_VERSION/squashfs-tools" \
 		-j "$(nproc)" \
-# https://github.com/plougher/squashfs-tools/blob/4.5.1/squashfs-tools/Makefile#L1
+# https://github.com/plougher/squashfs-tools/blob/4.6.1/squashfs-tools/Makefile#L1
 		GZIP_SUPPORT=1 \
 		XZ_SUPPORT=1 \
 		LZO_SUPPORT=1 \
@@ -175,25 +171,64 @@ RUN tcl-tce-load bash; \
 	source etc/profile.d/boot2docker-ps1.sh; \
 	[ "$PS1" = '\[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ ' ]
 
+# https://www.kernel.org/category/signatures.html#important-fingerprints
+ENV LINUX_GPG_KEYS \
+# Linus Torvalds
+		ABAF11C65A2970B130ABE3C479BE3E4300411886 \
+# Greg Kroah-Hartman
+		647F28654894E3BD457199BE38DBBDC86092693E \
+# Sasha Levin
+		E27E5D8A3403A2EF66873BBCDEA66FF797772CDC \
+# Ben Hutchings
+		AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
+
 # updated via "update.sh"
-ENV LINUX_VERSION 6.1.112
+ENV LINUX_VERSION 6.1.119
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
-  wget -O /linux.tar.sign "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
-  \
+	wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
+	\
+# decompress (signature is for the decompressed file)
+	xz --decompress /linux.tar.xz; \
+	[ -f /linux.tar ] && [ ! -f /linux.tar.xz ]; \
+	\
 # verify
-  # https://www.kernel.org/category/signatures.html
-  export GNUPGHOME="$(mktemp -d)"; \
-  gpg --locate-keys torvalds@kernel.org gregkh@kernel.org; \
-  xz -cd /linux.tar.xz | gpg --verify /linux.tar.sign - ; \
-  rm -rf "$GNUPGHOME"; \
-  \
+	export GNUPGHOME="$(mktemp -d)"; \
+	for key in $LINUX_GPG_KEYS; do \
+		for mirror in \
+			gpg-hkps://keyring.debian.org \
+			gpg-hkps://keyserver.ubuntu.com \
+			gpg-hkps://pgp.surf.nl \
+			wget-https://keyserver.ubuntu.com/pks/lookup\?search=0x$key\&fingerprint=on\&op=get \
+			wget-https://pgp.surf.nl/pks/lookup\?search=0x$key\&fingerprint=on\&op=get \
+			gpg-hkp://pgp.rediris.es \
+			gpg-hkp://keyserver.ubuntu.com \
+			gpg-hkp://keyserver.ubuntu.com:80 \
+			wget-http://keyserver.ubuntu.com/pks/lookup\?search=0x$key\&fingerprint=on\&op=get \
+			wget-http://pgp.surf.nl/pks/lookup\?search=0x$key\&fingerprint=on\&op=get \
+			gpg-ldap://keyserver-legacy.pgp.com \
+		; do \
+			if url=$(echo "$mirror" | grep "^gpg-"| sed -e 's|^gpg-||g') && \
+				gpg --batch --verbose --keyserver "$url" --keyserver-options timeout=5 --recv-keys "$key"; \
+			then \
+				break; \
+			elif url=$(echo "$mirror" | grep "^wget-"| sed -e 's|^wget-||g') && \
+				wget -O- "$url" | gpg --import; \
+			then \
+				break; \
+			fi; \
+		done; \
+		gpg --batch --fingerprint "$key"; \
+	done; \
+	gpg --batch --verify /linux.tar.asc /linux.tar; \
+	gpgconf --kill all; \
+	rm -rf "$GNUPGHOME"; \
+	\
 # extract
-  xz --decompress /linux.tar.xz; \
-  tar --extract --file /linux.tar --directory /usr/src; \
-  rm /linux.tar /linux.tar.sign; \
-  ln -sT "linux-$LINUX_VERSION" /usr/src/linux; \
-  [ -d /usr/src/linux ]
+	tar --extract --file /linux.tar --directory /usr/src; \
+	rm /linux.tar /linux.tar.asc; \
+	ln -sT "linux-$LINUX_VERSION" /usr/src/linux; \
+	[ -d /usr/src/linux ]
 
 RUN { \
 		echo '#!/usr/bin/env bash'; \
@@ -286,9 +321,9 @@ RUN tcl-tce-load \
 		acpid \
 		bash-completion \
 		ca-certificates \
-		curl \
+    curl \
 		e2fsprogs \
-		git \
+    git \
 		iproute2 \
 		iptables \
 		ncursesw-terminfo \
@@ -297,7 +332,7 @@ RUN tcl-tce-load \
 		openssl-1.1.1 \
 		parted \
 		procps-ng \
-		rsync \
+    rsync \
 		tar \
 		util-linux \
 		xz
@@ -313,11 +348,11 @@ RUN echo 'for i in /usr/local/etc/profile.d/*.sh ; do if [ -r "$i" ]; then . $i;
 # install kernel headers so we can use them for building xen-utils, etc
 RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
-# http://download.virtualbox.org/virtualbox/
+# https://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION 7.0.20
+ENV VBOX_VERSION 7.1.4
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256 4c7523fa6d17436e3b7788f62956674270572cfefa340d03111b85f8517d5981
+ENV VBOX_SHA256 80c91d35742f68217cf47b13e5b50d53f54c22c485bacce41ad7fdc321649e61
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
@@ -384,6 +419,31 @@ RUN make -C /usr/src/linux/tools/hv hv_kvp_daemon; \
 	cp /usr/src/linux/tools/hv/hv_kvp_daemon usr/local/sbin/; \
 	tcl-chroot hv_kvp_daemon --help || [ "$?" = 1 ]
 
+# Windows Subsystem for Linux config for Windows 11 and Server 2022 and later
+COPY files/wsl.conf etc/wsl.conf
+
+# TCL includes QEMU's guest agent 2.0.2+ (no reason to compile that ourselves)
+RUN qemuTemp="$(mktemp -d)"; \
+	pushd "$qemuTemp"; \
+	for mirror in $TCL_MIRRORS; do \
+		if wget -O qemu.tcz "$mirror/$TCL_MAJOR/x86_64/tcz/qemu.tcz" && \
+			wget -O- "$mirror/$TCL_MAJOR/x86_64/tcz/qemu.tcz.md5.txt" | md5sum -c -; \
+		then \
+			break; \
+		fi; \
+	done; \
+	wget -O- "$mirror/$TCL_MAJOR/x86_64/tcz/qemu.tcz.md5.txt" | md5sum -c -; \
+	unsquashfs -f -d . qemu.tcz /usr/local/bin/qemu-ga; \
+	popd; \
+	cp "$qemuTemp/usr/local/bin/qemu-ga" usr/local/bin/; \
+	rm -rf "$qemuTemp"; \
+	tcl-chroot qemu-ga --help || [ "$?" = 1 ]
+
+# TCL includes SPICE's agent 0.16.0+ (no reason to compile that ourselves)
+RUN tcl-tce-load spice-vdagent; \
+	tcl-chroot spice-vdagentd -h || [ "$?" = 1 ]; \
+	tcl-chroot spice-vdagent -h || [ "$?" = 1 ]
+
 # scan all built modules for kernel loading
 RUN tcl-chroot depmod "$(< /usr/src/linux/include/config/kernel.release)"
 
@@ -449,7 +509,7 @@ RUN { \
 		echo "PRETTY_NAME=\"Boot2Docker $DOCKER_VERSION (TCL $TCL_VERSION)\""; \
 		echo 'ANSI_COLOR="1;34"'; \
 		echo 'HOME_URL="https://github.com/troyxmccall/boot2docker"'; \
-		echo 'SUPPORT_URL="https://github.com/troyxmccall/boot2docker/issues"'; \
+		echo 'SUPPORT_URL="https://blog.docker.com/2016/11/introducing-docker-community-directory-docker-community-slack/"'; \
 		echo 'BUG_REPORT_URL="https://github.com/troyxmccall/boot2docker/issues"'; \
 	} > etc/os-release; \
 	sed -i 's/HOSTNAME="box"/HOSTNAME="boot2docker"/g' usr/bin/sethostname; \
