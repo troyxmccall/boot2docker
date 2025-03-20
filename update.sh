@@ -9,15 +9,15 @@ mirrors=(
 )
 
 # https://www.kernel.org/
-kernelBase='5.15'
+kernelBase='6.1'
 # https://download.docker.com/linux/static/stable/x86_64/
 dockerBase='28'
 # https://github.com/plougher/squashfs-tools/releases
-squashfsBase='4.5'
+squashfsBase='4.6'
 # https://download.virtualbox.org/virtualbox/
-vboxBase='7.0'
+vboxBase='7.1'
 # https://www.parallels.com/products/desktop/download/
-parallelsBase='18'
+parallelsBase='19'
 # https://github.com/bcicen/ctop/releases
 ctopBase='0.7'
 

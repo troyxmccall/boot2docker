@@ -54,7 +54,6 @@ RUN for mirror in $TCL_MIRRORS; do \
     if \
       { \
         wget -O /rootfs.gz "$mirror/$TCL_MAJOR/x86_64/archive/$TCL_VERSION/distribution_files/$TCL_ROOTFS" \
-# 9.x doesn't seem to use ".../archive/X.Y.Z/..." in the same way as 8.x :(
           || wget -O /rootfs.gz "$mirror/$TCL_MAJOR/x86_64/release/distribution_files/$TCL_ROOTFS" \
       ; } && echo "$TCL_ROOTFS_MD5 */rootfs.gz" | md5sum -c - \
     ; then \
@@ -183,7 +182,7 @@ ENV LINUX_GPG_KEYS \
     AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
 
 # updated via "update.sh"
-ENV LINUX_VERSION 5.15.178
+ENV LINUX_VERSION 6.1.131
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
   wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -456,7 +455,7 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 
 # https://download.docker.com/linux/static/stable/x86_64/
 # updated via "update.sh"
-ENV DOCKER_VERSION 28.0.1
+ENV DOCKER_VERSION 28.0.2
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
