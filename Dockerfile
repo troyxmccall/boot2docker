@@ -1,4 +1,5 @@
 
+
 FROM debian:bullseye-slim
 
 SHELL ["/bin/bash", "-Eeuo", "pipefail", "-xc"]
@@ -183,7 +184,7 @@ ENV LINUX_GPG_KEYS \
     AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
 
 # updated via "update.sh"
-ENV LINUX_VERSION 6.1.131
+ENV LINUX_VERSION 6.1.134
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
   wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
