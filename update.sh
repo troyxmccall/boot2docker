@@ -11,7 +11,7 @@ mirrors=(
 # https://www.kernel.org/
 kernelBase='6.1'
 # https://download.docker.com/linux/static/stable/x86_64/
-dockerBase='28'
+dockerBase='29'
 # https://github.com/plougher/squashfs-tools/releases
 squashfsBase='4.6'
 # https://download.virtualbox.org/virtualbox/
@@ -44,7 +44,7 @@ fi
 
 dockerLatest="$(
   wget -qO- 'https://api.github.com/repos/moby/moby/releases' \
-    | jq -r '[.[] | select(.prerelease | not)] | sort_by(.tag_name | sub("^v"; "") | split(".") | map(tonumber)) | reverse | .[0].tag_name'
+    | jq -r '[.[] | select(.prerelease | not) | select(.tag_name | test("^v[0-9]+\\.[0-9]+"))] | sort_by(.tag_name | sub("^v"; "") | split(".") | map(tonumber)) | reverse | .[0].tag_name'
 )"
 if ! [[ $dockerLatest =~ ^v$dockerBase[0-9.]+ ]]; then
   echo "Docker has an update! ($dockerLatest)"
@@ -95,7 +95,7 @@ seds+=(
 
 dockerVersion="$(
   wget -qO- 'https://api.github.com/repos/moby/moby/releases' \
-    | jq -r --arg base "v$dockerBase" '[.[] | .tag_name | select(startswith($base + "."))][0]' \
+    | jq -r --arg base "v$dockerBase" '[.[] | select(.tag_name | test("^v[0-9]+\\.[0-9]+")) | .tag_name | select(startswith($base + "."))][0]' \
     | sed -e 's!^v!!'
 )"
 seds+=(
