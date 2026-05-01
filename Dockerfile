@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM debian:trixie-slim
 
 SHELL ["/bin/bash", "-Eeuo", "pipefail", "-xc"]
 
@@ -12,8 +12,8 @@ RUN apt-get update; \
     flex \
     gcc \
     git \
-    gnupg dirmngr \
     golang-go \
+    gnupg dirmngr \
     kmod \
     libc6-dev \
     libelf-dev \
@@ -41,22 +41,19 @@ RUN echo 'progress = dot:giga' >> ~/.wgetrc; \
 WORKDIR /rootfs
 
 # updated via "update.sh"
-ENV TCL_MIRRORS https://distro.ibiblio.org/tinycorelinux
-ENV TCL_MAJOR 14.x
-ENV TCL_VERSION 14.0
+ENV TCL_MIRRORS="https://distro.ibiblio.org/tinycorelinux"
+ENV TCL_MAJOR=17.x
+ENV TCL_VERSION=17.0
 
 # updated via "update.sh"
-ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="9b83cc61e606c631fa58dd401ee3f631"
+ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="937e35270d61ca7f9c4290de9c1a8a33"
 
 COPY files/tce-load.patch files/udhcpc.patch /tcl-patches/
 
 RUN for mirror in $TCL_MIRRORS; do \
-    if \
-      { \
-        wget -O /rootfs.gz "$mirror/$TCL_MAJOR/x86_64/archive/$TCL_VERSION/distribution_files/$TCL_ROOTFS" \
-          || wget -O /rootfs.gz "$mirror/$TCL_MAJOR/x86_64/release/distribution_files/$TCL_ROOTFS" \
-      ; } && echo "$TCL_ROOTFS_MD5 */rootfs.gz" | md5sum -c - \
-    ; then \
+    if wget -O /rootfs.gz "$mirror/$TCL_MAJOR/x86_64/release/distribution_files/$TCL_ROOTFS" \
+      && echo "$TCL_ROOTFS_MD5 */rootfs.gz" | md5sum -c -; \
+    then \
       break; \
     fi; \
   done; \
@@ -66,17 +63,19 @@ RUN for mirror in $TCL_MIRRORS; do \
     --make-directories \
     --no-absolute-filenames \
   ; \
-  rm /rootfs.gz; \
-  \
-  for patch in /tcl-patches/*.patch; do \
-    patch \
-      --input "$patch" \
-      --strip 1 \
-      --verbose \
-    ; \
-  done; \
-  \
-  { \
+  rm /rootfs.gz
+
+RUN patch \
+    --input /tcl-patches/tce-load.patch \
+    --strip 1 \
+    --verbose
+
+RUN patch \
+    --input /tcl-patches/udhcpc.patch \
+    --strip 1 \
+    --verbose
+
+RUN { \
     echo '# https://1.1.1.1/'; \
     echo 'nameserver 1.1.1.1'; \
     echo 'nameserver 1.0.0.1'; \
@@ -121,7 +120,7 @@ RUN mkdir -p proc; \
 # as of squashfs-tools 4.4, TCL's unsquashfs is broken... (fails to unsquashfs *many* core tcz files)
 # https://github.com/plougher/squashfs-tools/releases
 # updated via "update.sh"
-ENV SQUASHFS_VERSION 4.6.1
+ENV SQUASHFS_VERSION=4.6.1
 RUN wget -O squashfs.tgz "https://github.com/plougher/squashfs-tools/archive/$SQUASHFS_VERSION.tar.gz"; \
   tar --directory=/usr/src --extract --file=squashfs.tgz; \
   make -C "/usr/src/squashfs-tools-$SQUASHFS_VERSION/squashfs-tools" \
@@ -171,18 +170,14 @@ RUN tcl-tce-load bash; \
   [ "$PS1" = '\[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ ' ]
 
 # https://www.kernel.org/category/signatures.html#important-fingerprints
-ENV LINUX_GPG_KEYS \
-# Linus Torvalds
-    ABAF11C65A2970B130ABE3C479BE3E4300411886 \
-# Greg Kroah-Hartman
-    647F28654894E3BD457199BE38DBBDC86092693E \
-# Sasha Levin
-    E27E5D8A3403A2EF66873BBCDEA66FF797772CDC \
-# Ben Hutchings
-    AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109
+ENV LINUX_GPG_KEYS="\
+ABAF11C65A2970B130ABE3C479BE3E4300411886 \
+647F28654894E3BD457199BE38DBBDC86092693E \
+E27E5D8A3403A2EF66873BBCDEA66FF797772CDC \
+AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109"
 
 # updated via "update.sh"
-ENV LINUX_VERSION 6.1.161
+ENV LINUX_VERSION=6.1.170
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
   wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -349,9 +344,9 @@ RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
 # https://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION 7.2.4
+ENV VBOX_VERSION=7.2.8
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256 66fa60b041fcda5d8b2ed22ba91bfafafaa3a5ff05c7d8ba01fbbe639669e153
+ENV VBOX_SHA256=169acb9361ade42d32500f51b48ad366fdfdb094b5e3fb422d640c1416a6b216
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
@@ -382,7 +377,7 @@ RUN tcl-tce-load open-vm-tools; \
 
 # https://www.parallels.com/products/desktop/download/
 # updated via "update.sh"
-ENV PARALLELS_VERSION 19.0.0-54570
+ENV PARALLELS_VERSION=19.0.0-54570
 
 RUN wget -O /parallels.tgz "https://download.parallels.com/desktop/v${PARALLELS_VERSION%%.*}/$PARALLELS_VERSION/ParallelsTools-$PARALLELS_VERSION-boot2docker.tar.gz"; \
   mkdir /usr/src/parallels; \
@@ -400,14 +395,20 @@ RUN cp -vr /usr/src/parallels/tools/* ./; \
 
 # https://github.com/xenserver/xe-guest-utilities/tags
 # updated via "update.sh"
-ENV XEN_VERSION 8.4.0
+ENV XEN_VERSION=10.0.1
+ENV XEN_SHA256=89c1cb9d7e3e454eb13af1bc2f4ee7561cd83abbeb1b5ecdc1183f3d46f00710
 
 RUN wget -O /xen.tgz "https://github.com/xenserver/xe-guest-utilities/archive/v$XEN_VERSION.tar.gz"; \
+  echo "$XEN_SHA256 */xen.tgz" | sha256sum -c -; \
   mkdir /usr/src/xen; \
   tar --extract --file /xen.tgz --directory /usr/src/xen --strip-components 1; \
   rm /xen.tgz
 RUN cd /usr/src/xen; \
   go mod vendor; \
+  # Prune non-Linux vendored sources that newer Go toolchains can mis-handle here.
+  rm -f vendor/golang.org/x/sys/unix/mk*.go; \
+  rm -f vendor/golang.org/x/sys/unix/asm_bsd_*.s; \
+  rm -f vendor/golang.org/x/sys/unix/asm_*bsd*.s; \
   mkdir vendor/xe-guest-utilities
 RUN make -C /usr/src/xen -j "$(nproc)" VENDORDIR="/usr/src/xen/vendor/xe-guest-utilities" PRODUCT_VERSION="$XEN_VERSION" RELEASE='boot2docker'; \
   tar --extract --file "/usr/src/xen/build/dist/xe-guest-utilities_$XEN_VERSION-boot2docker_x86_64.tgz"; \
@@ -448,14 +449,17 @@ RUN tcl-chroot depmod "$(< /usr/src/linux/include/config/kernel.release)"
 
 # https://github.com/tianon/cgroupfs-mount/releases
 ENV CGROUPFS_MOUNT_VERSION=1.4
+ENV CGROUPFS_MOUNT_SHA256=2e341c1bd45b244531a2abc0ed387b9a9616db5ffff7c5004b2828f34c207174
 
 RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mount/raw/${CGROUPFS_MOUNT_VERSION}/cgroupfs-mount"; \
+  echo "$CGROUPFS_MOUNT_SHA256 *usr/local/sbin/cgroupfs-mount" | sha256sum -c -; \
   chmod +x usr/local/sbin/cgroupfs-mount; \
   tcl-chroot cgroupfs-mount
 
 # https://download.docker.com/linux/static/stable/x86_64/
 # updated via "update.sh"
-ENV DOCKER_VERSION 29.2.0
+ENV DOCKER_VERSION=29.4.2
+ENV DOCKER_SHA256=e985c6dc5008b8d62d6bdf9b5894427d075b335a1391cacf24ee01a7a29a3728
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
@@ -465,11 +469,13 @@ RUN DOCKER_CHANNEL='stable'; \
   esac; \
   \
   wget -O /docker.tgz "https://download.docker.com/linux/static/$DOCKER_CHANNEL/x86_64/docker-$DOCKER_VERSION.tgz"; \
+  echo "$DOCKER_SHA256 */docker.tgz" | sha256sum -c -; \
   tar -zxvf /docker.tgz -C "usr/local/bin" --strip-components=1; \
   rm /docker.tgz; \
   \
-# download bash-completion too
-  wget -O usr/local/share/bash-completion/completions/docker "https://github.com/docker/cli/raw/v${DOCKER_VERSION}/contrib/completion/bash/docker"; \
+# generate bash completion from the verified CLI binary
+  mkdir -p usr/local/share/bash-completion/completions; \
+  chroot . docker completion bash > usr/local/share/bash-completion/completions/docker; \
   \
   for binary in \
     containerd \
@@ -484,8 +490,10 @@ RUN DOCKER_CHANNEL='stable'; \
 
 # CTOP - https://github.com/bcicen/ctop
 # updated via "update.sh"
-ENV CTOP_VERSION 0.7.7
+ENV CTOP_VERSION=0.7.7
+ENV CTOP_SHA256=b78374734ebe3d14b6edee3d5512c911c250d7fa7f3f964cb00acd3bc5a02a09
 RUN wget -O usr/local/bin/ctop "https://github.com/bcicen/ctop/releases/download/v$CTOP_VERSION/ctop-$CTOP_VERSION-linux-amd64" ; \
+  echo "$CTOP_SHA256 *usr/local/bin/ctop" | sha256sum -c -; \
   chmod +x usr/local/bin/ctop
 
 # set up docker

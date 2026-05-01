@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 # http://tinycorelinux.net/
-major='14.x'
-version='14.0'
+major='17.x'
+version='17.0'
 mirrors=(
   https://distro.ibiblio.org/tinycorelinux
 )
@@ -27,8 +27,27 @@ export GIT_HTTP_LOW_SPEED_TIME='2'
 # ... or servers being down
 wget() { command wget --timeout=2 "$@" -o /dev/null; }
 
-tclLatest="$(wget -qO- 'https://distro.ibiblio.org/tinycorelinux/latest-x86_64')"
-if [ $tclLatest != $version ]; then
+latest_tcl_for_major() {
+  local latest=
+  latest="$(
+    wget -qO- "${mirrors[0]}/${major}/x86_64/archive/" \
+      | grep -oE 'href="[0-9]+([.][0-9]+)?/' \
+      | cut -d'"' -f2 \
+      | cut -d/ -f1 \
+      | sort -V \
+      | tail -1
+  )"
+
+  if [ -n "$latest" ]; then
+    printf '%s\n' "$latest"
+    return 0
+  fi
+
+  wget -qO- 'https://distro.ibiblio.org/tinycorelinux/latest-x86_64'
+}
+
+tclLatest="$(latest_tcl_for_major)"
+if [ "$tclLatest" != "$version" ]; then
   echo "Tiny Core Linux has an update! ($tclLatest)"
   # exit 1
 fi
@@ -43,10 +62,13 @@ if ! [[ $kernelLatest =~ ^$kernelBase[0-9.]+ ]]; then
 fi
 
 dockerLatest="$(
-  wget -qO- 'https://api.github.com/repos/moby/moby/releases' \
-    | jq -r '[.[] | select(.prerelease | not) | select(.tag_name | test("^v[0-9]+\\.[0-9]+"))] | sort_by(.tag_name | sub("^v"; "") | split(".") | map(tonumber)) | reverse | .[0].tag_name'
+  wget -qO- 'https://download.docker.com/linux/static/stable/x86_64/' \
+    | grep -oE 'docker-[0-9]+([.][0-9]+)+[.]tgz' \
+    | sed -E 's/^docker-//; s/[.]tgz$//' \
+    | sort -Vu \
+    | tail -1
 )"
-if ! [[ $dockerLatest =~ ^v$dockerBase[0-9.]+ ]]; then
+if [ -z "$dockerLatest" ] || ! [[ $dockerLatest =~ ^$dockerBase[0-9.]+ ]]; then
   echo "Docker has an update! ($dockerLatest)"
   exit 1
 fi
@@ -54,9 +76,9 @@ fi
 cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
 
 seds=(
-  -e 's!^(ENV TCL_MIRRORS).*!\1 '"${mirrors[*]}"'!'
-  -e 's!^(ENV TCL_MAJOR).*!\1 '"$major"'!'
-  -e 's!^(ENV TCL_VERSION).*!\1 '"$version"'!'
+  -e 's!^ENV TCL_MIRRORS=.*!ENV TCL_MIRRORS="'"${mirrors[*]}"'"!'
+  -e 's!^ENV TCL_MAJOR=.*!ENV TCL_MAJOR='"$major"'!'
+  -e 's!^ENV TCL_VERSION=.*!ENV TCL_VERSION='"$version"'!'
 )
 
 fetch() {
@@ -90,16 +112,24 @@ kernelVersion="$(
     | jq -r --arg base "$kernelBase" '.releases[] | .version | select(startswith($base + "."))'
 )"
 seds+=(
-  -e 's!^(ENV LINUX_VERSION).*!\1 '"$kernelVersion"'!'
+  -e 's!^ENV LINUX_VERSION=.*!ENV LINUX_VERSION='"$kernelVersion"'!'
 )
 
 dockerVersion="$(
-  wget -qO- 'https://api.github.com/repos/moby/moby/releases' \
-    | jq -r --arg base "v$dockerBase" '[.[] | select(.tag_name | test("^v[0-9]+\\.[0-9]+")) | .tag_name | select(startswith($base + "."))][0]' \
-    | sed -e 's!^v!!'
+  wget -qO- 'https://download.docker.com/linux/static/stable/x86_64/' \
+    | grep -oE "docker-${dockerBase}[0-9.]*[.]tgz" \
+    | sed -E 's/^docker-//; s/[.]tgz$//' \
+    | sort -Vu \
+    | tail -1
+)"
+dockerSha256="$(
+  wget -qO- "https://download.docker.com/linux/static/stable/x86_64/docker-$dockerVersion.tgz" \
+    | sha256sum \
+    | cut -d' ' -f1
 )"
 seds+=(
-  -e 's!^(ENV DOCKER_VERSION).*!\1 '"$dockerVersion"'!'
+  -e 's!^ENV DOCKER_VERSION=.*!ENV DOCKER_VERSION='"$dockerVersion"'!'
+  -e 's!^ENV DOCKER_SHA256=.*!ENV DOCKER_SHA256='"$dockerSha256"'!'
 )
 
 squashfsVersion="$(
@@ -112,7 +142,7 @@ squashfsVersion="$(
     | head -1
 )"
 seds+=(
-  -e 's!^(ENV SQUASHFS_VERSION).*!\1 '"$squashfsVersion"'!'
+  -e 's!^ENV SQUASHFS_VERSION=.*!ENV SQUASHFS_VERSION='"$squashfsVersion"'!'
   -e 's!^(# https://github.com/plougher/squashfs-tools/blob/).*(/squashfs-tools/Makefile#L1)$!\1'"$squashfsVersion"'\2!'
 )
 
@@ -130,8 +160,8 @@ vboxSha256="$(
   } | awk '$2 ~ /^[*]?VBoxGuestAdditions_.*[.]iso$/ { print $1 }'
 )"
 seds+=(
-  -e 's!^(ENV VBOX_VERSION).*!\1 '"$vboxVersion"'!'
-  -e 's!^(ENV VBOX_SHA256).*!\1 '"$vboxSha256"'!'
+  -e 's!^ENV VBOX_VERSION=.*!ENV VBOX_VERSION='"$vboxVersion"'!'
+  -e 's!^ENV VBOX_SHA256=.*!ENV VBOX_SHA256='"$vboxSha256"'!'
 )
 
 parallelsVersion="$(
@@ -146,7 +176,7 @@ parallelsVersion="$(
   | sed -re 's|.*/([0-9.-]+)/.*|\1|'
 )"
 seds+=(
-  -e 's!^(ENV PARALLELS_VERSION).*!\1 '"$parallelsVersion"'!'
+  -e 's!^ENV PARALLELS_VERSION=.*!ENV PARALLELS_VERSION='"$parallelsVersion"'!'
 )
 
 xenVersion="$(
@@ -158,8 +188,14 @@ xenVersion="$(
     | sort -rV \
     | head -1
 )"
+xenSha256="$(
+  wget -qO- "https://github.com/xenserver/xe-guest-utilities/archive/v$xenVersion.tar.gz" \
+    | sha256sum \
+    | cut -d' ' -f1
+)"
 seds+=(
-  -e 's!^(ENV XEN_VERSION).*!\1 '"$xenVersion"'!'
+  -e 's!^ENV XEN_VERSION=.*!ENV XEN_VERSION='"$xenVersion"'!'
+  -e 's!^ENV XEN_SHA256=.*!ENV XEN_SHA256='"$xenSha256"'!'
 )
 
 ctopVersion="$(
@@ -171,8 +207,13 @@ ctopVersion="$(
     | sort -rV \
     | head -1
 )"
+ctopSha256="$(
+  wget -qO- "https://github.com/bcicen/ctop/releases/download/v$ctopVersion/sha256sums.txt" \
+    | awk '$2 == "ctop-'"$ctopVersion"'-linux-amd64" { print $1 }'
+)"
 seds+=(
-  -e 's!^(ENV CTOP_VERSION).*!\1 '"$ctopVersion"'!'
+  -e 's!^ENV CTOP_VERSION=.*!ENV CTOP_VERSION='"$ctopVersion"'!'
+  -e 's!^ENV CTOP_SHA256=.*!ENV CTOP_SHA256='"$ctopSha256"'!'
 )
 
 set -x
