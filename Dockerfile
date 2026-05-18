@@ -177,7 +177,7 @@ E27E5D8A3403A2EF66873BBCDEA66FF797772CDC \
 AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109"
 
 # updated via "update.sh"
-ENV LINUX_VERSION=6.1.172
+ENV LINUX_VERSION=6.1.173
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
   wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -458,8 +458,8 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 
 # https://download.docker.com/linux/static/stable/x86_64/
 # updated via "update.sh"
-ENV DOCKER_VERSION=29.4.3
-ENV DOCKER_SHA256=bc9734a89d3edd15eeca8620961f6499ba69948814c85d7ac3488e34b3e16d01
+ENV DOCKER_VERSION=29.5.1
+ENV DOCKER_SHA256=dfa6e37ffe24e71a637f737ec911e24dcd7a106e01973636cb33a201728a9bd6
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
