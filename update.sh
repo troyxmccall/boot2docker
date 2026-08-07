@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 # http://tinycorelinux.net/
 major='17.x'
-version='17.0'
+version='17.1'
 mirrors=(
   https://distro.ibiblio.org/tinycorelinux
 )
@@ -28,22 +28,15 @@ export GIT_HTTP_LOW_SPEED_TIME='2'
 wget() { command wget --timeout=2 "$@" -o /dev/null; }
 
 latest_tcl_for_major() {
-  local latest=
-  latest="$(
+  {
     wget -qO- "${mirrors[0]}/${major}/x86_64/archive/" \
       | grep -oE 'href="[0-9]+([.][0-9]+)?/' \
       | cut -d'"' -f2 \
       | cut -d/ -f1 \
-      | sort -V \
-      | tail -1
-  )"
-
-  if [ -n "$latest" ]; then
-    printf '%s\n' "$latest"
-    return 0
-  fi
-
-  wget -qO- 'https://distro.ibiblio.org/tinycorelinux/latest-x86_64'
+      || :
+    wget -qO- 'https://distro.ibiblio.org/tinycorelinux/latest-x86_64' \
+      || :
+  } | sort -Vu | tail -1
 }
 
 tclLatest="$(latest_tcl_for_major)"

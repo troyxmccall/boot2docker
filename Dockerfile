@@ -43,19 +43,24 @@ WORKDIR /rootfs
 # updated via "update.sh"
 ENV TCL_MIRRORS="https://distro.ibiblio.org/tinycorelinux"
 ENV TCL_MAJOR=17.x
-ENV TCL_VERSION=17.0
+ENV TCL_VERSION=17.1
 
 # updated via "update.sh"
-ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="937e35270d61ca7f9c4290de9c1a8a33"
+ENV TCL_ROOTFS="rootfs64.gz" TCL_ROOTFS_MD5="d02529ab5ef6c9851f0579d698f1352e"
 
 COPY files/tce-load.patch files/udhcpc.patch /tcl-patches/
 
 RUN for mirror in $TCL_MIRRORS; do \
-    if wget -O /rootfs.gz "$mirror/$TCL_MAJOR/x86_64/release/distribution_files/$TCL_ROOTFS" \
-      && echo "$TCL_ROOTFS_MD5 */rootfs.gz" | md5sum -c -; \
-    then \
-      break; \
-    fi; \
+    for rootfsPath in \
+      "$TCL_MAJOR/x86_64/archive/$TCL_VERSION/distribution_files/$TCL_ROOTFS" \
+      "$TCL_MAJOR/x86_64/release/distribution_files/$TCL_ROOTFS" \
+    ; do \
+      if wget -O /rootfs.gz "$mirror/$rootfsPath" \
+        && echo "$TCL_ROOTFS_MD5 */rootfs.gz" | md5sum -c -; \
+      then \
+        break 2; \
+      fi; \
+    done; \
   done; \
   echo "$TCL_ROOTFS_MD5 */rootfs.gz" | md5sum -c -; \
   zcat /rootfs.gz | cpio \
@@ -177,7 +182,7 @@ E27E5D8A3403A2EF66873BBCDEA66FF797772CDC \
 AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109"
 
 # updated via "update.sh"
-ENV LINUX_VERSION=6.1.173
+ENV LINUX_VERSION=6.1.181
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
   wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -344,9 +349,9 @@ RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
 # https://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION=7.2.8
+ENV VBOX_VERSION=7.2.14
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256=169acb9361ade42d32500f51b48ad366fdfdb094b5e3fb422d640c1416a6b216
+ENV VBOX_SHA256=4f51a073296de31cce53924860549149be5dc339f65dcd1dbf34fd7accefe8fb
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
@@ -458,8 +463,8 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 
 # https://download.docker.com/linux/static/stable/x86_64/
 # updated via "update.sh"
-ENV DOCKER_VERSION=29.5.1
-ENV DOCKER_SHA256=dfa6e37ffe24e71a637f737ec911e24dcd7a106e01973636cb33a201728a9bd6
+ENV DOCKER_VERSION=29.7.2
+ENV DOCKER_SHA256=803d433f226db4776e1768fd319fc6c6e4935a456acf84fcc0080818b854bc8f
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
