@@ -182,7 +182,7 @@ E27E5D8A3403A2EF66873BBCDEA66FF797772CDC \
 AC2B29BD34A6AFDDB3F68F35E7BFC8EC95861109"
 
 # updated via "update.sh"
-ENV LINUX_VERSION=6.1.181
+ENV LINUX_VERSION=6.1.187
 
 RUN wget -O /linux.tar.xz "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.xz"; \
   wget -O /linux.tar.asc "https://cdn.kernel.org/pub/linux/kernel/v${LINUX_VERSION%%.*}.x/linux-${LINUX_VERSION}.tar.sign"; \
@@ -349,9 +349,9 @@ RUN make -C /usr/src/linux INSTALL_HDR_PATH=/usr/local headers_install
 
 # https://download.virtualbox.org/virtualbox/
 # updated via "update.sh"
-ENV VBOX_VERSION=7.2.14
+ENV VBOX_VERSION=7.2.16
 # https://www.virtualbox.org/download/hashes/$VBOX_VERSION/SHA256SUMS
-ENV VBOX_SHA256=4f51a073296de31cce53924860549149be5dc339f65dcd1dbf34fd7accefe8fb
+ENV VBOX_SHA256=c9349c0231d81c821fc1de7b9592bf07bb7c3f111c3f942ddddc211496ef7a3e
 # (VBoxGuestAdditions_X.Y.Z.iso SHA256, for verification)
 
 RUN wget -O /vbox.iso "https://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso"; \
@@ -463,8 +463,8 @@ RUN wget -O usr/local/sbin/cgroupfs-mount "https://github.com/tianon/cgroupfs-mo
 
 # https://download.docker.com/linux/static/stable/x86_64/
 # updated via "update.sh"
-ENV DOCKER_VERSION=29.7.2
-ENV DOCKER_SHA256=803d433f226db4776e1768fd319fc6c6e4935a456acf84fcc0080818b854bc8f
+ENV DOCKER_VERSION=29.8.0
+ENV DOCKER_SHA256=cc21815cf1e2efed867dc9c8b96b46ffed8ea176ffab32b0aacb54726ded8f25
 
 # Get the Docker binaries with version that matches our boot2docker version.
 RUN DOCKER_CHANNEL='stable'; \
