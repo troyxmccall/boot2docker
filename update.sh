@@ -25,7 +25,7 @@ ctopBase='0.7'
 export GIT_HTTP_LOW_SPEED_LIMIT='100'
 export GIT_HTTP_LOW_SPEED_TIME='2'
 # ... or servers being down
-wget() { command wget --timeout=2 "$@" -o /dev/null; }
+wget() { command wget --timeout=10 "$@" -o /dev/null; }
 
 latest_tcl_for_major() {
   {
@@ -40,7 +40,7 @@ latest_tcl_for_major() {
 }
 
 tclLatest="$(latest_tcl_for_major)"
-if [ "$tclLatest" != "$version" ]; then
+if [ -n "$tclLatest" ] && [ "$tclLatest" != "$version" ]; then
   echo "Tiny Core Linux has an update! ($tclLatest)"
   # exit 1
 fi
