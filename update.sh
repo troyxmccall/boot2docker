@@ -26,8 +26,6 @@ dockerBase='29'
 squashfsBase='4.6'
 # https://download.virtualbox.org/virtualbox/
 vboxBase='7.1'
-# https://www.parallels.com/products/desktop/download/
-parallelsBase='19'
 # https://github.com/bcicen/ctop/releases
 ctopBase='0.7'
 
@@ -192,20 +190,8 @@ seds+=(
   -e 's!^ENV VBOX_SHA256=.*!ENV VBOX_SHA256='"$vboxSha256"'!'
 )
 
-parallelsVersion="$(
-  command wget -SO- --spider "$(
-    wget -O- "https://download.parallels.com/website_links/$(
-      wget -O- https://download.parallels.com/website_links/desktop/index.json \
-        | jq -r 'to_entries | sort_by(.key) | reverse | .[0].value.builds.en_US'
-    )" \
-    | jq -r '.[] | select(.category.name | startswith("Parallels Desktop")) | .contents[] | select(.name | startswith("Parallels Desktop")) | .files.DMG'
-  )" 2>&1 >/dev/null \
-  | grep -oE 'https://download.parallels.com/desktop/.* \[following]' \
-  | sed -re 's|.*/([0-9.-]+)/.*|\1|'
-)"
-seds+=(
-  -e 's!^ENV PARALLELS_VERSION=.*!ENV PARALLELS_VERSION='"$parallelsVersion"'!'
-)
+# Keep the Parallels Boot2Docker tools pin in Dockerfile. The latest Desktop
+# release may not provide a Boot2Docker archive or support this kernel.
 
 xenVersion="$(
   git ls-remote --tags 'https://github.com/xenserver/xe-guest-utilities' \

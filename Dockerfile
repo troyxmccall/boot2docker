@@ -382,7 +382,7 @@ RUN tcl-tce-load open-vm-tools; \
   rm etc/profile.d/open-vm-tools.sh
 
 # https://www.parallels.com/products/desktop/download/
-# updated via "update.sh"
+# Pin the Boot2Docker tools archive; newer Desktop releases do not necessarily publish one.
 ENV PARALLELS_VERSION=19.0.0-54570
 
 RUN wget -O /parallels.tgz "https://download.parallels.com/desktop/v${PARALLELS_VERSION%%.*}/$PARALLELS_VERSION/ParallelsTools-$PARALLELS_VERSION-boot2docker.tar.gz"; \
@@ -565,10 +565,11 @@ RUN awk -F: ' \
   chmod +x usr/local/sbin/autologin
 
 # ssh config prep
-RUN [ ! -f usr/local/etc/sshd_config ]; \
+# Tiny Core 17 ships the config directly instead of an .orig template.
+RUN mv usr/local/etc/ssh/sshd_config usr/local/etc/ssh/sshd_config.orig; \
   sed -r \
-    -e 's/^#(UseDNS[[:space:]])/\1/' \
-    -e 's/^#(PermitUserEnvironment)[[:space:]].*$/\1 yes/' \
+    -e 's/^#?(UseDNS)[[:space:]].*$/\1 no/' \
+    -e 's/^#?(PermitUserEnvironment)[[:space:]].*$/\1 yes/' \
     usr/local/etc/ssh/sshd_config.orig \
     > usr/local/etc/ssh/sshd_config; \
   grep '^UseDNS no$' usr/local/etc/ssh/sshd_config; \

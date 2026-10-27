@@ -41,3 +41,7 @@ server if `download.virtualbox.org` is unavailable.
 Download errors are printed with the failing command. Updating the Dockerfile
 does not change the running VM; `bash build.sh` builds the ISO and restarts
 the `default` machine with it.
+
+Linux stays on the 6.1 longterm series for compatibility with the pinned Parallels
+Boot2Docker tools (`19.0.0-54570`). The updater leaves this tools version unchanged;
+newer Parallels Desktop releases may not publish a Boot2Docker tools archive.
