@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker build -t boot2docker .
+docker buildx build --builder local-buildkit --load -t boot2docker .
 if [ $? -ne 0 ]; then
     echo "Docker build failed. Stopping the script."
     exit 1

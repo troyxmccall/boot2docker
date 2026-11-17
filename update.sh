@@ -160,35 +160,43 @@ fetch_vbox_metadata() {
   return 1
 }
 
-vboxVersion="$(
-  fetch_vbox_metadata \
-    'https://download.virtualbox.org/virtualbox/' \
-    'https://download.oracle.com/virtualbox/' \
-    | grep -oE 'href="[0-9.]+/?"' \
-    | cut -d'"' -f2 \
-    | cut -d/ -f1 \
-    | sort -Vu \
-    | tail -1
-)"
-if ! [[ $vboxVersion =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
-  echo >&2 "Invalid VirtualBox version: $vboxVersion"
-  exit 1
+# Keep the existing version/checksum pair unless both lookups succeed.
+update_vbox() {
+  local vboxVersion vboxSha256
+  vboxVersion="$(
+    fetch_vbox_metadata \
+      'https://download.virtualbox.org/virtualbox/' \
+      'https://download.oracle.com/virtualbox/' \
+      | grep -oE 'href="[0-9.]+/?"' \
+      | cut -d'"' -f2 \
+      | cut -d/ -f1 \
+      | sort -Vu \
+      | tail -1
+  )" || return 1
+  if ! [[ $vboxVersion =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
+    echo >&2 "Invalid VirtualBox version: $vboxVersion"
+    return 1
+  fi
+  vboxSha256="$(
+    fetch_vbox_metadata \
+      "https://download.virtualbox.org/virtualbox/$vboxVersion/SHA256SUMS" \
+      "https://download.oracle.com/virtualbox/$vboxVersion/SHA256SUMS" \
+      "https://www.virtualbox.org/download/hashes/$vboxVersion/SHA256SUMS" \
+      | awk -v iso="VBoxGuestAdditions_$vboxVersion.iso" '$2 == iso || $2 == "*" iso { print $1 }'
+  )" || return 1
+  if ! [[ $vboxSha256 =~ ^[[:xdigit:]]{64}$ ]]; then
+    echo >&2 "Invalid or missing SHA256 for VBoxGuestAdditions_$vboxVersion.iso."
+    return 1
+  fi
+  seds+=(
+    -e 's!^ENV VBOX_VERSION=.*!ENV VBOX_VERSION='"$vboxVersion"'!'
+    -e 's!^ENV VBOX_SHA256=.*!ENV VBOX_SHA256='"$vboxSha256"'!'
+  )
+}
+
+if ! update_vbox; then
+  echo >&2 'Warning: keeping the existing VirtualBox version and SHA256; continuing other dependency updates.'
 fi
-vboxSha256="$(
-  fetch_vbox_metadata \
-    "https://download.virtualbox.org/virtualbox/$vboxVersion/SHA256SUMS" \
-    "https://download.oracle.com/virtualbox/$vboxVersion/SHA256SUMS" \
-    "https://www.virtualbox.org/download/hashes/$vboxVersion/SHA256SUMS" \
-    | awk -v iso="VBoxGuestAdditions_$vboxVersion.iso" '$2 == iso || $2 == "*" iso { print $1 }'
-)"
-if ! [[ $vboxSha256 =~ ^[[:xdigit:]]{64}$ ]]; then
-  echo >&2 "Invalid or missing SHA256 for VBoxGuestAdditions_$vboxVersion.iso."
-  exit 1
-fi
-seds+=(
-  -e 's!^ENV VBOX_VERSION=.*!ENV VBOX_VERSION='"$vboxVersion"'!'
-  -e 's!^ENV VBOX_SHA256=.*!ENV VBOX_SHA256='"$vboxSha256"'!'
-)
 
 # Keep the Parallels Boot2Docker tools pin in Dockerfile. The latest Desktop
 # release may not provide a Boot2Docker archive or support this kernel.
