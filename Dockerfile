@@ -143,9 +143,13 @@ RUN wget -O squashfs.tgz "https://github.com/plougher/squashfs-tools/archive/$SQ
   ; \
   tcl-chroot unsquashfs -v || :
 
-RUN { \
+# BuildKit's no-new-privileges setting prevents sudo from elevating after su.
+# Run a build-only copy of tce-load as root, omitting its non-root check.
+RUN grep -qx checknotroot usr/bin/tce-load; \
+  { \
     echo '#!/bin/bash -Eeux'; \
-    echo 'tcl-chroot su -c "tce-load -wicl \"\$@\"" docker -- - "$@"'; \
+    echo 'set -o pipefail'; \
+    echo 'sed '\''/^checknotroot$/d'\'' usr/bin/tce-load | tcl-chroot sh -s -- -wicl "$@"'; \
   } > /usr/local/bin/tcl-tce-load; \
   chmod +x /usr/local/bin/tcl-tce-load
 
@@ -322,6 +326,7 @@ RUN tcl-tce-load \
     ca-certificates \
     curl \
     e2fsprogs \
+    fastfetch \
     git \
     iproute2 \
     iptables \
@@ -335,6 +340,8 @@ RUN tcl-tce-load \
     tar \
     util-linux \
     xz
+
+RUN tcl-chroot fastfetch --version
 
 # bash-completion puts auto-load in /usr/local/etc/profile.d instead of /etc/profile.d
 # (this one-liner is the same as the loop at the end of /etc/profile with an adjusted search path)
